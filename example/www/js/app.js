@@ -1,9 +1,9 @@
-// Ionic Starter App
+
 
 // angular.module is a global place for creating, registering and retrieving Angular modules
-// 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
+// 'tapjolt' is the name of this angular module example (also set in a <body> attribute in index.html)
 // the 2nd parameter is an array of 'requires'
-angular.module('starter', ['ionic', 'ionic.contrib.ui.cards'])
+angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
 
 .run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
@@ -32,39 +32,108 @@ angular.module('starter', ['ionic', 'ionic.contrib.ui.cards'])
 })
 
 
-.controller('CardsCtrl', function($scope, $ionicSwipeCardDelegate) {
-  var cardTypes = [{
-    title: 'Swipe down to clear the card',
-    image: 'img/pic.png'
-  }, {
-    title: 'Where is this?',
-    image: 'img/pic.png'
-  }, {
-    title: 'What kind of grass is this?',
-    image: 'img/pic2.png'
-  }, {
-    title: 'What beach is this?',
-    image: 'img/pic3.png'
-  }, {
-    title: 'What kind of clouds are these?',
-    image: 'img/pic4.png'
-  }];
+.controller('CardsCtrl', function($scope, $http, $ionicSwipeCardDelegate) {
+  var cardTypes = [];
 
   $scope.cards = Array.prototype.slice.call(cardTypes, 0, 0);
 
   $scope.cardSwiped = function(index) {
-    $scope.addCard();
+    var name = 'intro card';
+    
+    if (index > -1 && $scope.cards[index] && $scope.cards[index].title) {
+      name = $scope.cards[index].title.rendered;
+    }
+
+    var direction = 0;
+    if (OWATracker) OWATracker.trackAction(name, 'swipe',  name, direction);
+    $scope.addCard(index);
+  };
+
+  $scope.cardTapped = function(index) {
+    var name = 'intro card';
+    
+    if (index > -1 && $scope.cards[index] && $scope.cards[index].title) {
+      name = $scope.cards[index].title.rendered;
+    }
+
+    var position = 1;
+    if (OWATracker) OWATracker.trackAction(name, 'doubletap',  name, position);
+    $scope.addCard(index);
   };
 
   $scope.cardDestroyed = function(index) {
     $scope.cards.splice(index, 1);
   };
 
-  $scope.addCard = function() {
-    var newCard = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+  $scope.getStartPage = function() {
+    // TODO: Get this from user data.
+    return 0;
+  };
+
+  $scope.getPageSize = function() {
+    // TODO: Load this from remote.
+    return 10;
+  };
+
+  $scope.getMinimumDeckSize = function() {
+    // TODO: Load this from remote too. Or calculate off latency.
+    return 3;
+  };
+
+  $scope.currentPage = $scope.getStartPage();
+  $scope.pageSize = $scope.getPageSize();
+
+  $scope.getPaginationQueryParams = function() {
+    var queryParams = [
+      ['per_page', $scope.pageSize].join('='),
+      ['page', $scope.currentPage].join('=')
+    ].join('&');
+
+    queryParams = ['?', queryParams].join('');
+
+    console.log(queryParams);
+    return queryParams;
+  };
+
+  $scope.addCard = function(oldCardIndex) {
+    var index = Math.floor(Math.random() * cardTypes.length); 
+    var newCard = cardTypes[index];
+    cardTypes.splice(index, 1);
+
+    console.log(cardTypes.length);
+
+    if (cardTypes.length < $scope.getMinimumDeckSize()) {
+      $scope.getMoreCards();
+    }
+
+    if (newCard === undefined) {
+      newCard = {
+        id: -1,
+        content: {
+          rendered: '<p>Loading more cards...</p>'
+        },
+        title: {
+          rendered: 'Loading.'
+        }
+      };
+    }
+
     newCard.id = Math.random();
     $scope.cards.push(angular.extend({}, newCard));
+    $scope.cardContent = (newCard.content ? newCard.content.rendered : '<p>Loading more cards...</p>');
+    if (OWATracker) OWATracker.trackAction(newCard.title.rendered, 'load',  newCard.title.rendered, oldCardIndex);
   }
+
+  $scope.getMoreCards = function() {
+    // TODO: Pagination. Preloading. Caching.
+    $scope.currentPage = $scope.currentPage + 1;
+
+    $http.get(['http://cms.tapjo.lt/wp-json/wp/v2/posts', $scope.getPaginationQueryParams()].join('/')).then(function(response) {
+      cardTypes = cardTypes.concat(response.data);
+    });
+  };
+
+  $scope.getMoreCards();
 })
 
 .controller('CardCtrl', function($scope, $ionicSwipeCardDelegate) {

@@ -149,7 +149,7 @@
 
       this.el.classList.add(animationClass + '-start');
       this.el.classList.add(animationClass);
-      this.el.style.display = 'block';
+      //this.el.style.display = 'block';
       setTimeout(function() {
         self.el.classList.remove(animationClass + '-start');
       }, 100);
@@ -166,34 +166,47 @@
      * Swipe a card out programtically
      */
     swipe: function() {
-      this.transitionOut();
+      this.transitionOut(true);
     },
 
     /**
      * Fly the card out or animate back into resting position.
      */
-    transitionOut: function() {
+    transitionOut: function(swipe) {
       var self = this;
 
-      if(this.y < 0) {
-        this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
-        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + this.x + ',' + (this.startY) + 'px, 0)';
-        setTimeout(function() {
-          self.el.style[TRANSITION] = 'none';
-        }, 200);
-      } else {
+      //if(this.y < 0) {
+      //  this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
+      //  this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + this.x + ',' + (this.startY) + 'px, 0)';
+      //  setTimeout(function() {
+      //    self.el.style[TRANSITION] = 'none';
+      //  }, 200);
+      //} else {
         // Fly out
-        var rotateTo = (this.rotationAngle + (this.rotationDirection * 0.6)) || (Math.random() * 0.4);
-        var duration = this.rotationAngle ? 0.2 : 0.5;
-        this.el.style[TRANSITION] = '-webkit-transform ' + duration + 's ease-in-out';
-        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + this.x + ',' + (window.innerHeight * 1.5) + 'px, 0) rotate(' + rotateTo + 'rad)';
-        this.onSwipe && this.onSwipe();
+        //var rotateTo = (this.rotationAngle + (this.rotationDirection * 0.6)) || (Math.random() * 0.4);
+        //var duration = this.rotationAngle ? 0.2 : 0.5;
+        //this.el.style[TRANSITION] = '-webkit-transform ' + duration + 's ease-in-out';
+        //this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + this.x + ',' + (window.innerHeight * 1.5) + 'px, 0) rotate(' + rotateTo + 'rad)';
 
+        // Fade out
+        //var rotateTo = (this.rotationAngle + (this.rotationDirection * 0.6)) || (Math.random() * 0.4);
+        var duration = this.rotationAngle ? 0.2 : 0.5;
+        this.el.style[TRANSITION] = '-webkit-transform ' + duration + 's ease-out';
+
+        // TODO: Utterly horrible. Probably requires complete refactor of model.
+        if (swipe) {
+          this.onSwipe && this.onSwipe();
+        } else {
+          this.onTap && this.onTap();
+        }
+
+        self.el.style['display'] = 'none';
+        
         // Trigger destroy after card has swiped out
         setTimeout(function() {
           self.onDestroy && self.onDestroy();
         }, duration * 1000);
-      }
+      //}
     },
 
     /**
@@ -201,6 +214,11 @@
      */
     bindEvents: function() {
       var self = this;
+
+      ionic.onGesture('doubletap', function(e) {
+        ionic.requestAnimationFrame(function() { self._doTap(e) });
+      }, this.el);
+
       ionic.onGesture('dragstart', function(e) {
         var cx = window.innerWidth / 2;
         if(e.gesture.touches[0].pageX < cx) {
@@ -231,6 +249,10 @@
       this.rotationDirection = -1;
     },
 
+    _doTap: function (e) {
+      this.transitionOut(false);
+    },
+
     _doDragStart: function(e) {
       var width = this.el.offsetWidth;
       var point = window.innerWidth / 2 + this.rotationDirection * (width / 2)
@@ -243,20 +265,20 @@
     },
 
     _doDrag: function(e) {
-      var o = e.gesture.deltaY / 3;
+      var o = e.gesture.deltaX / 3;
 
       this.rotationAngle = Math.atan(o/this.touchDistance) * this.rotationDirection;
 
-      if(e.gesture.deltaY < 0) {
+      if(e.gesture.deltay < 0) {
         this.rotationAngle = 0;
       }
 
-      this.y = this.startY + (e.gesture.deltaY * 0.4);
+      this.x = this.startX + (e.gesture.deltaX * 0.4);
 
       this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(' + this.x + 'px, ' + this.y  + 'px, 0) rotate(' + (this.rotationAngle || 0) + 'rad)';
     },
     _doDragEnd: function(e) {
-      this.transitionOut(e);
+      this.transitionOut(true);
     }
   });
 
@@ -270,6 +292,7 @@
       require: '^swipeCards',
       transclude: true,
       scope: {
+        onCardTap: '&',
         onCardSwipe: '&',
         onDestroy: '&'
       },
@@ -279,6 +302,11 @@
         // Instantiate our card view
         var swipeableCard = new SwipeableCardView({
           el: el,
+          onTap: function() {
+            $timeout(function() {
+              $scope.onCardTap();
+            });
+          },
           onSwipe: function() {
             $timeout(function() {
               $scope.onCardSwipe();
