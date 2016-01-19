@@ -35,7 +35,20 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
 .controller('CardsCtrl', function($scope, $http, $ionicSwipeCardDelegate) {
   var cardTypes = [];
 
+  var fingerprint = null;
+  var fingerprintJS = null;
+
   $scope.cards = Array.prototype.slice.call(cardTypes, 0, 0);
+
+  $scope.init = function () {
+    console.log('init!');
+    fingerprintJS = new Fingerprint2();
+    fingerprintJS.get(function (result, components) {
+      fingerprint = result;
+      console.log('fingerprint calculated: ' + fingerprint);
+      components.map(function(x) { console.log(x.key); });
+    });
+  };
 
   $scope.cardSwiped = function(index) {
     var name = 'intro card';
@@ -45,7 +58,24 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
     }
 
     var direction = 0;
-    if (OWATracker) OWATracker.trackAction(name, 'swipe',  name, direction);
+    if (OWATracker) {
+      if (fingerprint !== null) {
+        OWATracker.trackAction(name, 'swipe', fingerprint, direction);
+        console.log('swipe fingerprint: ' + fingerprint);
+      } else {
+        if (fingerprintJS !== null) {
+          fingerprintJS.get(function (result, components) {
+            fingerprint = result;
+            OWATracker.trackAction(name, 'swipe', result, direction);
+            console.log('swipe result: ' + result);
+          });
+        } else {
+          OWATracker.trackAction(name, 'swipe', name, direction);
+          console.log('swipe default: ' + name);
+        }
+      }
+    }
+
     $scope.addCard(index);
   };
 
@@ -57,7 +87,24 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
     }
 
     var position = 1;
-    if (OWATracker) OWATracker.trackAction(name, 'doubletap',  name, position);
+    if (OWATracker) {
+      if (fingerprint !== null) {
+        OWATracker.trackAction(name, 'doubletap', fingerprint, position);
+        console.log('doubletap fingerprint: ' + fingerprint);
+      } else {
+        if (fingerprintJS !== null) {
+          fingerprintJS.get(function (result, components) {
+            fingerprint = result;
+            OWATracker.trackAction(name, 'doubletap', result, position);
+            console.log('doubletap result: ' + result);
+          });
+        } else {
+          OWATracker.trackAction(name, 'doubletap',  name, position);
+          console.log('doubletap default: ' + name);
+        }
+      }
+    }
+    
     $scope.addCard(index);
   };
 
@@ -121,7 +168,24 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
     newCard.id = Math.random();
     $scope.cards.push(angular.extend({}, newCard));
     $scope.cardContent = (newCard.content ? newCard.content.rendered : '<p>Loading more cards...</p>');
-    if (OWATracker) OWATracker.trackAction(newCard.title.rendered, 'load',  newCard.title.rendered, oldCardIndex);
+    
+    if (OWATracker) {
+      if (fingerprint !== null) {
+        OWATracker.trackAction(newCard.title.rendered, 'load', fingerprint, oldCardIndex);
+        console.log('load fingerprint: ' + fingerprint);
+      } else {
+        if (fingerprintJS !== null) {
+          fingerprintJS.get(function (result, components) {
+            fingerprint = result;
+            OWATracker.trackAction(newCard.title.rendered, 'load', result, oldCardIndex);
+            console.log('load result: ' + fingerprint);
+          });
+        } else {
+          OWATracker.trackAction(newCard.title.rendered, 'load', newCard.title.rendered, oldCardIndex);
+          console.log('load default: ' + newCard.title.rendered);
+        }
+      }
+    }
   }
 
   $scope.getMoreCards = function() {

@@ -16,6 +16,7 @@
   <!-- ionic/angularjs js -->
 
   <script src="lib/ionic/js/ionic.bundle.js"></script>
+  <script src="lib/fingerprint2.min.js"></script>
 
   <!-- cordova script (this will be a 404 during development) -->
   <!--<script src="cordova.js"></script>-->
@@ -25,7 +26,7 @@
   <script src="js/ionic.swipecards.js"></script>
 </head>
 <body ng-app="tapjolt" no-scroll>
-  <ion-pane ng-controller="CardsCtrl" style="background-color: #FFFDFD; color: #303000;">
+  <ion-pane ng-controller="CardsCtrl" ng-init="init()" style="background-color: #FFFDFD; color: #303000;">
     <swipe-cards>
       <swipe-card on-card-swipe="cardSwiped(-1)" id="start-card" on-card-tap="cardTapped(-1)">
         <div id="msg">
