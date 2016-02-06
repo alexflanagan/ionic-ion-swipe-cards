@@ -168,20 +168,23 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
     newCard.id = Math.random();
     $scope.cards.push(angular.extend({}, newCard));
     $scope.cardContent = (newCard.content ? newCard.content.rendered : '<p>Loading more cards...</p>');
+
+    // TODO: index within deck position.
+    var deckPosition = $scope.currentPage * $scope.pageSize;
     
     if (OWATracker) {
       if (fingerprint !== null) {
-        OWATracker.trackAction(newCard.title.rendered, 'load', fingerprint, oldCardIndex);
+        OWATracker.trackAction(newCard.title.rendered, 'load', fingerprint, deckPosition);
         console.log('load fingerprint: ' + fingerprint);
       } else {
         if (fingerprintJS !== null) {
           fingerprintJS.get(function (result, components) {
             fingerprint = result;
-            OWATracker.trackAction(newCard.title.rendered, 'load', result, oldCardIndex);
+            OWATracker.trackAction(newCard.title.rendered, 'load', result, deckPosition);
             console.log('load result: ' + fingerprint);
           });
         } else {
-          OWATracker.trackAction(newCard.title.rendered, 'load', newCard.title.rendered, oldCardIndex);
+          OWATracker.trackAction(newCard.title.rendered, 'load', newCard.title.rendered, deckPosition);
           console.log('load default: ' + newCard.title.rendered);
         }
       }
@@ -189,11 +192,16 @@ angular.module('tapjolt', ['ionic', 'ionic.contrib.ui.cards', 'ngSanitize'])
   }
 
   $scope.getMoreCards = function() {
-    // TODO: Pagination. Preloading. Caching.
-    $scope.currentPage = $scope.currentPage + 1;
+    $http.get(['//api.tapjo.lt/api/profiles', fingerprint].join('/')).then(function(positionResponse) {
 
-    $http.get(['http://cms.tapjo.lt/wp-json/wp/v2/posts', $scope.getPaginationQueryParams()].join('/')).then(function(response) {
-      cardTypes = cardTypes.concat(response.data);
+      // TODO: get deck position
+
+      // TODO: Pagination. Preloading. Caching.
+      $scope.currentPage = $scope.currentPage + 1;
+
+      $http.get(['http://cms.tapjo.lt/wp-json/wp/v2/posts', $scope.getPaginationQueryParams()].join('/')).then(function(response) {
+        cardTypes = cardTypes.concat(response.data);
+      });
     });
   };
 
